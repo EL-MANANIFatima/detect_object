@@ -1,0 +1,27 @@
+{
+  "buildFiles": [
+    "C:\\Users\\Fatima EL\\Downloads\\Custom_Object_Detection_App-master\\Custom_Object_Detection_App-master\\sdk\\libcxx_helper\\CMakeLists.txt"
+  ],
+  "cleanCommandsComponents": [
+    [
+      "C:\\Users\\Fatima EL\\AppData\\Local\\Android\\Sdk\\cmake\\3.18.1\\bin\\ninja.exe",
+      "-C",
+      "C:\\Users\\Fatima EL\\Downloads\\Custom_Object_Detection_App-master\\Custom_Object_Detection_App-master\\sdk\\.cxx\\Debug\\114l63m5\\x86",
+      "clean"
+    ]
+  ],
+  "buildTargetsCommandComponents": [
+    "C:\\Users\\Fatima EL\\AppData\\Local\\Android\\Sdk\\cmake\\3.18.1\\bin\\ninja.exe",
+    "-C",
+    "C:\\Users\\Fatima EL\\Downloads\\Custom_Object_Detection_App-master\\Custom_Object_Detection_App-master\\sdk\\.cxx\\Debug\\114l63m5\\x86",
+    "{LIST_OF_TARGETS_TO_BUILD}"
+  ],
+  "libraries": {
+    "opencv_jni_shared::@6890427a1f51a3e7e1df": {
+      "artifactName": "opencv_jni_shared",
+      "abi": "x86",
+      "output": "C:\\Users\\Fatima EL\\Downloads\\Custom_Object_Detection_App-master\\Custom_Object_Detection_App-master\\sdk\\.cxx\\Debug\\114l63m5\\x86\\libopencv_jni_shared.a",
+      "runtimeFiles": []
+    }
+  }
+}

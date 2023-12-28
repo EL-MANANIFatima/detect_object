@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "657923795831",
+    "project_id": "tets-4f607",
+    "storage_bucket": "tets-4f607.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:657923795831:android:5306dee3f87fb705fd4f72",
+        "android_client_info": {
+          "package_name": "com.example.imagepro"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC5noaKG4V0PYAfz8oZU9VOhLiHxI7xZec"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

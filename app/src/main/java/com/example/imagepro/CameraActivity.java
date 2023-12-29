@@ -22,10 +22,14 @@ import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
+import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfByte;
+import org.opencv.core.MatOfPoint;
+import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.Point;
+import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
 import org.opencv.dnn.Dnn;
 import org.opencv.dnn.Net;
@@ -33,7 +37,9 @@ import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -56,6 +62,9 @@ public class CameraActivity extends AppCompatActivity implements CameraBridgeVie
     private CameraBridgeViewBase mOpenCvCameraView;
     private objectDetectorClass objectDetectorClass;
     private Net net;
+    private Mat mIntermediateMat;
+    private Mat hierarchy;
+    private List<MatOfPoint> contours;
     OkHttpClient client = new OkHttpClient();
 
 
@@ -142,36 +151,43 @@ public class CameraActivity extends AppCompatActivity implements CameraBridgeVie
     @Override
     public void onCameraViewStarted(int width, int height) {
         mRgba = new Mat(height, width, CvType.CV_8UC4);
+        mIntermediateMat=new Mat(height, width, CvType.CV_8UC4);
         mGray = new Mat(height, width, CvType.CV_8UC1);
-
+        hierarchy=new Mat();
     }
 
     @Override
     public void onCameraViewStopped() {
         mRgba.release();
         mGray.release();
+        mIntermediateMat.release();
+        hierarchy.release();
     }
 
     @Override
     public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
-        long currentTime = System.currentTimeMillis();
-        if (currentTime - lastFrameTime < 2000 / FRAME_RATE) {
-            return inputFrame.rgba();
-        }
-
+        //long currentTime = System.currentTimeMillis();
+//        if (currentTime - lastFrameTime < 2000 / FRAME_RATE) {
+//            return inputFrame.rgba();
+//        }
+        Mat mRgba = inputFrame.rgba();
         byte[] frameBytes = convertMatToBytes(inputFrame.rgba());
         String jsonResponse = sendFrameToServer(frameBytes);
-        lastFrameTime = currentTime;
+        //lastFrameTime = currentTime;
 
         if (jsonResponse != null) {
+            Log.d("JSON Response", jsonResponse);
+
             try {
                 JSONObject jsonObject = new JSONObject(jsonResponse);
                 if (jsonObject.has("detected_objects")) {
+                    Log.d("mora has","fiya n3aas");
+
                     JSONArray detectedObjects = jsonObject.getJSONArray("detected_objects");
 
                     for (int i = 0; i < detectedObjects.length(); i++) {
-                        Log.d("hna","fin hna");
                         JSONObject object = detectedObjects.getJSONObject(i);
+                        Log.d("west la boucle","loop"+i);
 
                         // Extract the bounding box coordinates
                         double ymin = object.getDouble("ymin");
@@ -180,19 +196,39 @@ public class CameraActivity extends AppCompatActivity implements CameraBridgeVie
                         double xmax = object.getDouble("xmax");
 
 
-                        // Convert normalized coordinates to pixel coordinates based on frame size
-                        int imgWidth = inputFrame.rgba().cols();
-                        int imgHeight = inputFrame.rgba().rows();
-                        int left = (int) (xmin * imgWidth);
-                        int top = (int) (ymin * imgHeight);
-                        int right = (int) (xmax * imgWidth);
-                        int bottom = (int) (ymax * imgHeight);
+                        int imgWidth = mRgba.cols();
+                        int imgHeight = mRgba.rows();
 
-                        Log.d("Object " + i, "Left: " + left + ", Top: " + top + ", Right: " + right + ", Bottom: " + bottom);
+                        int rectLeft = (int) (Math.max(1, xmin * imgWidth));
+                        int rectTop = (int) (Math.max(1, ymin * imgHeight));
+                        int rectRight = (int) (Math.min(imgWidth, xmax * imgWidth));
+                        int rectBottom = (int) (Math.min(imgHeight, ymax * imgHeight));
 
+                        mRgba=inputFrame.rgba();
+                        contours=new ArrayList<MatOfPoint>();
+                        hierarchy=new Mat();
+                        Imgproc.Canny(mRgba,mIntermediateMat,80,100);
+                        Imgproc.findContours(mIntermediateMat,contours,hierarchy,Imgproc.RETR_TREE,Imgproc.CHAIN_APPROX_SIMPLE,new Point(0,0));
+                        hierarchy.release();
 
-                        // Draw the rectangle on the frame
-                        Imgproc.rectangle(inputFrame.rgba(), new Point(left, top), new Point(right, bottom), new Scalar(0, 255, 0), 2);
+                        for(int contourIndex=0;contourIndex<contours.size();contourIndex++){
+                            MatOfPoint2f approxCurve=new MatOfPoint2f();
+                            MatOfPoint2f contour2f=new MatOfPoint2f(contours.get(contourIndex).toArray());
+                            double approxDistance=Imgproc.arcLength(contour2f,true)*0.01;
+                            Imgproc.approxPolyDP(contour2f,approxCurve,approxDistance,true);
+
+                            MatOfPoint points=new MatOfPoint(approxCurve.toArray());
+                            Rect rect=Imgproc.boundingRect(points);
+                            double height=rect.height;
+                            double width=rect.width;
+                            Log.d("rect",imgHeight+","+rect.y+","+rect.height+","+rect.width);
+
+                            if (height > 300 && width > 300) {
+                                Imgproc.rectangle(mRgba, new Point(rect.x, rect.y), new Point(rect.x + rect.width, rect.y + rect.height), new Scalar(0, 255, 0, 0), 3);
+                                //Imgproc.rectangle(mRgba, new Point(rectLeft, rectTop), new Point(rectRight, rectBottom), new Scalar(0, 255, 0), 3);
+                                Imgproc.putText(mRgba, object.getString("object_name"), rect.tl(), Core.FONT_HERSHEY_SIMPLEX, 2, new Scalar(0, 0, 0), 4);
+                            }
+                        }
                     }
                 }
             } catch (JSONException e) {
@@ -200,8 +236,9 @@ public class CameraActivity extends AppCompatActivity implements CameraBridgeVie
             }
         }
 
-        return inputFrame.rgba();
+        return mRgba;
     }
+
 
     private byte[] convertMatToBytes(Mat frame) {
         MatOfByte matOfByte = new MatOfByte();
@@ -217,7 +254,7 @@ public class CameraActivity extends AppCompatActivity implements CameraBridgeVie
 
         RequestBody requestBody = multipartBuilder.build();
         Request request = new Request.Builder()
-                .url("http://192.168.1.124:5001/detect_objects")
+                .url("http://100.70.32.233:5001/detect_objects")
                 .post(requestBody)
                 .build();
         CountDownLatch latch = new CountDownLatch(1);
